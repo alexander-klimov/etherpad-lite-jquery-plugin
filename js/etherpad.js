@@ -21,13 +21,16 @@
       'toggleTextOn'      : 'Disable Rich-text',
       'toggleTextOff'     : 'Enable Rich-text',
       'plugins'           : {},
-      'rtl'               : false
+      'rtl'               : false,
+      // custom settings
+      'isGroupPad'        : '',
+      'sessionSettings'     : {}
     };
-    
+
     var $self = this;
     if (!$self.length) return;
     if (!$self.attr('id')) throw new Error('No "id" attribute');
-    
+
     var useValue = $self[0].tagName.toLowerCase() == 'textarea';
     var selfId = $self.attr('id');
     var epframeId = 'epframe'+ selfId;
@@ -36,38 +39,54 @@
       if ( options ) {
         $.extend( settings, options );
       }
-      
+
       var pluginParams = '';
       for(var option in settings.plugins) {
-        pluginParams += '&' + option + '=' + settings.plugins[option]
+        pluginParams += '&' + option + '=' + settings.plugins[option];
       }
 
-      var iFrameLink = '<iframe id="'+epframeId;
-          iFrameLink = iFrameLink +'" name="' + epframeId;
-          iFrameLink = iFrameLink +'" src="' + settings.host+settings.baseUrl+settings.padId;
-          iFrameLink = iFrameLink + '?showControls=' + settings.showControls;
-          iFrameLink = iFrameLink + '&showChat=' + settings.showChat;
-          iFrameLink = iFrameLink + '&showLineNumbers=' + settings.showLineNumbers;
-          iFrameLink = iFrameLink + '&useMonospaceFont=' + settings.useMonospaceFont;
-          iFrameLink = iFrameLink + '&userName=' + settings.userName;
-          if (settings.lang) {
-            iFrameLink = iFrameLink + '&lang=' + settings.lang;
-          }
-          iFrameLink = iFrameLink + '&noColors=' + settings.noColors;
-          iFrameLink = iFrameLink + '&userColor=' + settings.userColor;
-          iFrameLink = iFrameLink + '&hideQRCode=' + settings.hideQRCode;
-          iFrameLink = iFrameLink + '&alwaysShowChat=' + settings.alwaysShowChat;
-          iFrameLink = iFrameLink + '&rtl=' + settings.rtl;
-          iFrameLink = iFrameLink + pluginParams;
-          iFrameLink = iFrameLink +'" style="border:' + settings.border;
-          iFrameLink = iFrameLink +'; border-style:' + settings.borderStyle;
-          iFrameLink = iFrameLink +';" width="' + '100%';//settings.width;
-          iFrameLink = iFrameLink +'" height="' + settings.height; 
-          iFrameLink = iFrameLink +'"></iframe>';
-      
-      
+      var iFrameLink = '<iframe id="' + epframeId;
+      iFrameLink += '" name="' + epframeId;
+      if(settings.sessionSettings.hasOwnProperty("apiKey")) {
+        iFrameLink += '" src="' + settings.host + '/auth_session';
+        iFrameLink += '?apiKey=' + settings.sessionSettings.apiKey;
+        iFrameLink += '&authorName=' + settings.sessionSettings.userName;
+        iFrameLink += '&authorMapper=' + settings.sessionSettings.userId;
+        iFrameLink += '&groupMapper=' + settings.sessionSettings.groupId;
+        iFrameLink += '&validUntil=' + settings.sessionSettings.validUntil;
+        iFrameLink += '&padName=' + settings.sessionSettings.padName;
+        var validUntil = parseInt(localStorage.getItem('epSessionValidUntil'));
+        if(isNaN(validUntil) || (new Date()).getTime() < validUntil) {
+          iFrameLink += '&sessionID=' + localStorage.getItem('epSessionID');
+        }
+        iFrameLink += '&';
+      } else {
+        iFrameLink += '" src="' + settings.host + settings.baseUrl + settings.padId;
+        iFrameLink += '?';
+      }
+      iFrameLink += 'showControls=' + settings.showControls;
+      iFrameLink += '&showChat=' + settings.showChat;
+      iFrameLink += '&showLineNumbers=' + settings.showLineNumbers;
+      iFrameLink += '&useMonospaceFont=' + settings.useMonospaceFont;
+      iFrameLink += '&userName=' + settings.userName;
+      if (settings.lang) {
+        iFrameLink += '&lang=' + settings.lang;
+      }
+      iFrameLink += '&noColors=' + settings.noColors;
+      iFrameLink += '&userColor=' + settings.userColor;
+      iFrameLink += '&hideQRCode=' + settings.hideQRCode;
+      iFrameLink += '&alwaysShowChat=' + settings.alwaysShowChat;
+      iFrameLink += '&rtl=' + settings.rtl;
+      iFrameLink += pluginParams;
+
+      iFrameLink +='" style="border:' + settings.border;
+      iFrameLink +='; border-style:' + settings.borderStyle;
+      iFrameLink +=';" width="' + '100%';//settings.width;
+      iFrameLink +='" height="' + settings.height;
+      iFrameLink +='"></iframe>';
+
       var $iFrameLink = $(iFrameLink);
-      
+
       if (useValue) {
         var $toggleLink = $('<a href="#'+ selfId +'">'+ settings.toggleTextOn +'</a>').click(function(){
           var $this = $(this);
@@ -82,8 +101,47 @@
           .after($iFrameLink)
         ;
       }
-      else {      
+      else {
         $self.html(iFrameLink);
+        var epFrame = $self.find('#' + epframeId);
+        var isLocalStorageAvailable = true;
+        // Safari, in Private Browsing Mode, looks like it supports localStorage but all calls to setItem
+        // throw QuotaExceededError. We're going to detect this and just silently drop any calls to setItem
+        // to avoid the entire page breaking, without having to do a check at each usage of Storage.
+        if (typeof localStorage === "object") {
+          try {
+            localStorage.setItem('localStorage', 1);
+            localStorage.removeItem('localStorage');
+          } catch (e) {
+            isLocalStorageAvailable = false;
+            if(!!toastr && typeof toastr.warning === 'function') {
+              toastr.warning('Your web browser does not support storing settings locally. ' +
+                'A new Etherpad session will be created every time this page loads' +
+                'while in "Private Browsing Mode".');
+            }
+          }
+        }
+
+        var receiveMessage = function(event) {
+          if (event.originalEvent.origin !== settings.host)
+            return;
+
+          var data = event.originalEvent.data;
+          if(data.action === 'redirect') {
+            if(isLocalStorageAvailable) {
+              localStorage.setItem('epSessionID', data.sessionID);
+              localStorage.setItem('epSessionValidUntil', data.validUntil);
+            }
+            epFrame.attr('src', data.url);
+          }
+          if(data.action === 'refreshSession' && isLocalStorageAvailable) {
+            localStorage.removeItem('epSessionID');
+            localStorage.removeItem('epSessionValidUntil');
+            var regexp = /^((?:.+&)|\?)(sessionID=s\.[^&]+)(?:$|(?:&(.+)))/g;
+            epFrame.attr('src', epFrame.attr('src').replace(regexp, '$1$3'));
+          }
+        };
+        $(window).on("message", receiveMessage);
       }
     }
 
@@ -95,19 +153,19 @@
 
       // perform an ajax call on contentsUrl and write it to the parent
       $.get(contentsUrl, function(data) {
-        
+
         if (target.is(':input')) {
           target.val(data).show();
         }
         else {
           target.html(data);
         }
-        
+
         $('#'+ epframeId).remove();
       });
     }
-    
-    
+
+
     return $self;
   };
 })( jQuery );
