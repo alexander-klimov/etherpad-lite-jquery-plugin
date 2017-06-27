@@ -84,6 +84,7 @@
       iFrameLink +=';" width="' + '100%';//settings.width;
       iFrameLink +='" height="' + settings.height;
       iFrameLink +='"></iframe>';
+      iFrameLink = iFrameLink.replace(/([^:]\/)\/+/g, '$1');
 
       var $iFrameLink = $(iFrameLink);
 
