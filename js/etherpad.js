@@ -124,7 +124,8 @@
         }
 
         var receiveMessage = function(event) {
-          if (event.originalEvent.origin !== settings.host)
+          var origin = (event.originalEvent.origin + "/").replace(/([^:]\/)\/+/g, "$1");
+          if (origin !== settings.host)
             return;
 
           var data = event.originalEvent.data;
