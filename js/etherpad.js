@@ -50,7 +50,7 @@
       if(settings.sessionSettings.hasOwnProperty("apiKey")) {
         iFrameLink += '" src="' + settings.host + '/auth_session';
         iFrameLink += '?apiKey=' + settings.sessionSettings.apiKey;
-        iFrameLink += '&authorName=' + settings.sessionSettings.userName;
+        iFrameLink += '&authorName=' + encodeURIComponent(settings.sessionSettings.userName);
         iFrameLink += '&authorMapper=' + settings.sessionSettings.userId;
         iFrameLink += '&groupMapper=' + settings.sessionSettings.groupId;
         iFrameLink += '&validUntil=' + settings.sessionSettings.validUntil;
@@ -68,7 +68,7 @@
       iFrameLink += '&showChat=' + settings.showChat;
       iFrameLink += '&showLineNumbers=' + settings.showLineNumbers;
       iFrameLink += '&useMonospaceFont=' + settings.useMonospaceFont;
-      iFrameLink += '&userName=' + settings.userName;
+      iFrameLink += '&userName=' + encodeURIComponent(settings.userName);
       if (settings.lang) {
         iFrameLink += '&lang=' + settings.lang;
       }
