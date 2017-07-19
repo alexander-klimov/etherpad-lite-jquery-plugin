@@ -8,8 +8,8 @@
   ],
   "version": "1.0.3",
   "author": {
-    "name": "John McLear",
-    "url": "https://github.com/ether/etherpad-lite-jquery-plugin"
+    "name": "Alexander Klimov",
+    "url": "https://github.com/alexander-klimov/etherpad-lite-jquery-plugin"
   },
   "licenses": [
     {
@@ -17,8 +17,8 @@
       "url": "http://www.apache.org/licenses/LICENSE-2.0.html"
     }
   ],
-  "bugs": "https://github.com/ether/etherpad-lite-jquery-plugin/issues/",
-  "homepage": "https://github.com/ether/etherpad-lite-jquery-plugin",
+  "bugs": "https://github.com/alexander-klimov/etherpad-lite-jquery-plugin/issues/",
+  "homepage": "https://github.com/alexander-klimov/etherpad-lite-jquery-plugin",
   "dependencies": {
     "jquery": ">=1.5"
   }
