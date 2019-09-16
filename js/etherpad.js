@@ -3,7 +3,9 @@
   $.fn.pad = function( options ) {
     var settings = {
       'host'              : 'http://beta.etherpad.org',
+      'rootUrl'           : 'http://beta.etherpad.org',
       'baseUrl'           : '/p/',
+      'allowCrossOrigin'  : false,
       'showControls'      : false,
       'showChat'          : false,
       'showLineNumbers'   : false,
@@ -24,7 +26,7 @@
       'rtl'               : false,
       // custom settings
       'isGroupPad'        : '',
-      'sessionSettings'     : {}
+      'sessionSettings'   : {}
     };
 
     var $self = this;
@@ -41,13 +43,13 @@
       }
 
       var pluginParams = '';
-      for(var option in settings.plugins) {
+      for (var option in settings.plugins) {
         pluginParams += '&' + option + '=' + settings.plugins[option];
       }
 
       var iFrameLink = '<iframe id="' + epframeId;
       iFrameLink += '" name="' + epframeId;
-      if(settings.sessionSettings.hasOwnProperty("apiKey")) {
+      if (settings.sessionSettings.hasOwnProperty("apiKey")) {
         iFrameLink += '" src="' + settings.host + '/auth_session';
         iFrameLink += '?apiKey=' + settings.sessionSettings.apiKey;
         iFrameLink += '&authorName=' + encodeURIComponent(settings.sessionSettings.userName);
@@ -61,7 +63,7 @@
         }
         iFrameLink += '&';
       } else {
-        iFrameLink += '" src="' + settings.host + settings.baseUrl + settings.padId;
+        iFrameLink += '" src="' + settings.rootUrl + settings.baseUrl + settings.padId;
         iFrameLink += '?';
       }
       iFrameLink += 'showControls=' + settings.showControls;
@@ -124,20 +126,24 @@
         }
 
         var receiveMessage = function(event) {
-          var origin = (event.originalEvent.origin + "/").replace(/([^:]\/)\/+/g, "$1");
-          var host = (settings.host + "/").replace(/([^:]\/)\/+/g, "$1");
-          if (origin !== host)
-            return;
+          var evt = event.originalEvent || event,
+              data = evt.data,
+              origin = (evt.origin + "/").replace(/([^:]\/)\/+/g, "$1"),
+              host = (settings.host + "/").replace(/([^:]\/)\/+/g, "$1");
 
-          var data = event.originalEvent.data;
-          if(data.action === 'redirect') {
-            if(isLocalStorageAvailable) {
+          if (!settings.allowCrossOrigin && origin !== host) {
+            console.error('Cross-origin framing is not allowed.');
+            return;
+          }
+
+          if (data.action === 'redirect') {
+            if (isLocalStorageAvailable) {
               localStorage.setItem('epSessionID', data.sessionID);
               localStorage.setItem('epSessionValidUntil', data.validUntil);
             }
-            epFrame.attr('src', data.url);
+            epFrame.attr('src', settings.rootUrl + data.path);
           }
-          if(data.action === 'refreshSession' && isLocalStorageAvailable) {
+          if (data.action === 'refreshSession' && isLocalStorageAvailable) {
             localStorage.removeItem('epSessionID');
             localStorage.removeItem('epSessionValidUntil');
             var regexp = /^((?:.+&)|\?)(sessionID=s\.[^&]+)(?:$|(?:&(.+)))/g;
