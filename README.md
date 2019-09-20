@@ -23,6 +23,7 @@ The Etherpad jQuery Plugin easily allows you to embed and access a pad from Ethe
 # Available options and parameters
 <pre>
 'host'             : 'http://beta.etherpad.org', // the host and port of the Etherpad instance, by default the foundation will host your pads for you
+'rootUrl'          : 'http://beta.etherpad.org', // The root URL of the Etherpad instance (host with path)
 'baseUrl'          : '/p/', // The base URL of the pads
 'showControls'     : false, // If you want to show controls IE bold, italic, etc.
 'showChat'         : false, // If you want to show the chat button or not
