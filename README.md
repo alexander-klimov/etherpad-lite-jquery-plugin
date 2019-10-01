@@ -20,6 +20,9 @@ The Etherpad jQuery Plugin easily allows you to embed and access a pad from Ethe
 ### Gets the padContents from Example #2 and writes it to the target div "exampleGetContents"
 `$('#examplePadBasic').pad({'getContents':'exampleGetContents'});`
 
+### Overwrites contents of the pad from Example #2 with "exampleSaveContents"
+`$('#examplePadBasic').pad({'body':'exampleSaveContents'});`
+
 # Available options and parameters
 <pre>
 'host'             : 'http://beta.etherpad.org', // the host and port of the Etherpad instance, by default the foundation will host your pads for you
