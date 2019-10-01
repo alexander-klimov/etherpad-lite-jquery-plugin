@@ -41,6 +41,7 @@ The Etherpad jQuery Plugin easily allows you to embed and access a pad from Ethe
 'plugins'          : {}, // The options related to the plugins, not to the basic Etherpad configuration
 'rtl'              : false // Show text from right to left
 'sessionSettings'  : {} // settings for session management (can contain apiKey, userName, userId, groupId, validUntil, padName)
+'body'             : undefined // if this option is defined, its value will be set as pad content
 </pre>
 
 # Copyright
