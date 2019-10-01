@@ -6,7 +6,7 @@
     "color",
     "animation"
   ],
-  "version": "1.0.5",
+  "version": "1.1.0",
   "author": {
     "name": "Alexander Klimov",
     "url": "https://github.com/alexander-klimov/etherpad-lite-jquery-plugin"
