@@ -3,8 +3,8 @@
   $.fn.pad = function( options ) {
     var settings = {
       'host'              : 'http://beta.etherpad.org',
-      'rootUrl'           : 'http://beta.etherpad.org',
-      'baseUrl'           : '/p/',
+      'basePath'          : '',
+      'padBasePath'       : '/p/',
       'allowCrossOrigin'  : false,
       'showControls'      : false,
       'showChat'          : false,
@@ -25,7 +25,6 @@
       'plugins'           : {},
       'rtl'               : false,
       // custom settings
-      'isGroupPad'        : '',
       'sessionSettings'   : {}
     };
 
@@ -33,7 +32,6 @@
     if (!$self.length) return;
     if (!$self.attr('id')) throw new Error('No "id" attribute');
 
-    var useValue = $self[0].tagName.toLowerCase() == 'textarea';
     var selfId = $self.attr('id');
     var epframeId = 'epframe'+ selfId;
     // This writes a new frame if required
@@ -50,7 +48,7 @@
       var iFrameLink = '<iframe id="' + epframeId;
       iFrameLink += '" name="' + epframeId;
       if (settings.sessionSettings.hasOwnProperty("apiKey")) {
-        iFrameLink += '" src="' + settings.host + '/auth_session';
+        iFrameLink += '" src="' + settings.basePath + '/auth_session';
         iFrameLink += '?apiKey=' + settings.sessionSettings.apiKey;
         iFrameLink += '&authorName=' + encodeURIComponent(settings.sessionSettings.userName);
         iFrameLink += '&authorMapper=' + settings.sessionSettings.userId;
@@ -63,7 +61,7 @@
         }
         iFrameLink += '&';
       } else {
-        iFrameLink += '" src="' + settings.rootUrl + settings.baseUrl + settings.padId;
+        iFrameLink += '" src="' + settings.basePath + settings.padBasePath + settings.padId;
         iFrameLink += '?';
       }
       iFrameLink += 'showControls=' + settings.showControls;
@@ -75,7 +73,7 @@
         iFrameLink += '&lang=' + settings.lang;
       }
       iFrameLink += '&noColors=' + settings.noColors;
-      iFrameLink += '&userColor=' + settings.userColor;
+      // iFrameLink += '&userColor=' + settings.userColor;
       iFrameLink += '&hideQRCode=' + settings.hideQRCode;
       iFrameLink += '&alwaysShowChat=' + settings.alwaysShowChat;
       iFrameLink += '&rtl=' + settings.rtl;
@@ -90,87 +88,76 @@
 
       var $iFrameLink = $(iFrameLink);
 
-      if (useValue) {
-        var $toggleLink = $('<a href="#'+ selfId +'">'+ settings.toggleTextOn +'</a>').click(function(){
-          var $this = $(this);
-          $this.toggleClass('active');
-          if ($this.hasClass('active')) $this.text(settings.toggleTextOff);
-          $self.pad({getContents: true});
-          return false;
-        });
-        $self
+      $self
           .hide()
-          .after($toggleLink)
-          .after($iFrameLink)
-        ;
-      }
-      else {
-        $self.html(iFrameLink);
-        var epFrame = $self.find('#' + epframeId);
-        var isLocalStorageAvailable = true;
-        // Safari, in Private Browsing Mode, looks like it supports localStorage but all calls to setItem
-        // throw QuotaExceededError. We're going to detect this and just silently drop any calls to setItem
-        // to avoid the entire page breaking, without having to do a check at each usage of Storage.
-        if (typeof localStorage === "object") {
-          try {
-            localStorage.setItem('localStorage', 1);
-            localStorage.removeItem('localStorage');
-          } catch (e) {
-            isLocalStorageAvailable = false;
-            if(!!toastr && typeof toastr.warning === 'function') {
-              toastr.warning('Your web browser does not support storing settings locally. ' +
+          .after($iFrameLink);
+      var epFrame = $self.siblings('#' + epframeId);
+      var isLocalStorageAvailable = true;
+      // Safari, in Private Browsing Mode, looks like it supports localStorage but all calls to setItem
+      // throw QuotaExceededError. We're going to detect this and just silently drop any calls to setItem
+      // to avoid the entire page breaking, without having to do a check at each usage of Storage.
+
+      if (typeof localStorage === "object") {
+        try {
+          localStorage.setItem('localStorage', 1);
+          localStorage.removeItem('localStorage');
+        } catch (e) {
+          isLocalStorageAvailable = false;
+          if(!!toastr && typeof toastr.warning === 'function') {
+            toastr.warning('Your web browser does not support storing settings locally. ' +
                 'A new Etherpad session will be created every time this page loads' +
                 'while in "Private Browsing Mode".');
-            }
           }
         }
-
-        var receiveMessage = function(event) {
-          var evt = event.originalEvent || event,
-              data = evt.data,
-              origin = (evt.origin + "/").replace(/([^:]\/)\/+/g, "$1"),
-              host = (settings.host + "/").replace(/([^:]\/)\/+/g, "$1");
-
-          if (!settings.allowCrossOrigin && origin !== host) {
-            console.error('Cross-origin framing is not allowed.');
-            return;
-          }
-
-          if (data.action === 'redirect') {
-            if (isLocalStorageAvailable) {
-              localStorage.setItem('epSessionID', data.sessionID);
-              localStorage.setItem('epSessionValidUntil', data.validUntil);
-            }
-            epFrame.attr('src', settings.rootUrl + data.path);
-          }
-          if (data.action === 'refreshSession' && isLocalStorageAvailable) {
-            localStorage.removeItem('epSessionID');
-            localStorage.removeItem('epSessionValidUntil');
-            var regexp = /^((?:.+&)|\?)(sessionID=s\.[^&]+)(?:$|(?:&(.+)))/g;
-            epFrame.attr('src', epFrame.attr('src').replace(regexp, '$1$3'));
-          }
-        };
-        $(window).on("message", receiveMessage);
       }
+
+      var receiveMessage = function(event) {
+        var evt = event.originalEvent || event,
+            data = evt.data,
+            origin = (evt.origin + "/").replace(/([^:]\/)\/+/g, "$1"),
+            host = (settings.host + "/").replace(/([^:]\/)\/+/g, "$1");
+
+        if (!settings.allowCrossOrigin && origin !== host) {
+          console.error('Cross-origin framing is not allowed.');
+          return;
+        }
+
+        if (data.action === 'redirect') {
+          if (isLocalStorageAvailable) {
+            localStorage.setItem('epSessionID', data.sessionID);
+            localStorage.setItem('epSessionValidUntil', data.validUntil);
+          }
+          epFrame.attr('src', settings.basePath + data.path);
+        }
+        if (data.action === 'refreshSession' && isLocalStorageAvailable) {
+          localStorage.removeItem('epSessionID');
+          localStorage.removeItem('epSessionValidUntil');
+          var regexp = /^((?:.+&)|\?)(sessionID=s\.[^&]+)(?:$|(?:&(.+)))/g;
+          epFrame.attr('src', epFrame.attr('src').replace(regexp, '$1$3'));
+        }
+        if (settings.body) {
+          var frameUrl = $('#' + epframeId).attr('src').split('?')[0];
+          var contentsUrl = frameUrl + "/import";
+
+          $.post(contentsUrl,
+              'Content-Type: multipart/form-data; boundary=--boundary\r\n\r\n--boundary\r\nContent-Disposition: form-data; name="file"; filename="import.html"\r\nContent-Type: text/plain\r\n\r\n' + settings.body + '\r\n\r\n--boundary');
+        }
+      };
+
+      $(window).on("message", receiveMessage);
     }
 
     // This reads the etherpad contents if required
-    else {
+    else if (options.getContents) {
       var frameUrl = $('#'+ epframeId).attr('src').split('?')[0];
       var contentsUrl = frameUrl + "/export/html";
-      var target = $('#'+ options.getContents);
 
       // perform an ajax call on contentsUrl and write it to the parent
       $.get(contentsUrl, function(data) {
-
-        if (target.is(':input')) {
-          target.val(data).show();
-        }
-        else {
-          target.html(data);
-        }
-
         $('#'+ epframeId).remove();
+        if (options.callback && typeof options.callback === 'function') {
+          options.callback(data);
+        }
       });
     }
 
